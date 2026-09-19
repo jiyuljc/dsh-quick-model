@@ -4,6 +4,10 @@
 
 原来的流程要自己想清楚服务商标识、接口地址、线路协议、密钥变量名，再一个一个手打模型 id。这个面板把这件事压成两步：**粘贴地址和密钥 → 勾选模型 → 保存**。
 
+> [!IMPORTANT]
+> **⚠️ 待注意：本插件通过「关闭 DSH 自带的模型页」来取代它。**
+> 安装前请先读 [安装](#安装) 一节里的警示 —— 特别是"卸载方式"和"不要只禁用它"两条。
+
 ## 安装
 
 **从 npm（推荐，一行搞定）：**
@@ -12,7 +16,24 @@
 dsh plugin --profile web add dsh-quick-model
 ```
 
-装完 **重启 DSH**，就是这个面板。
+装完 **重启 DSH**，再**强刷页面**（`Ctrl` + `Shift` + `R`），就是这个面板。
+
+> [!WARNING]
+> **⚠️ 待注意 —— 装它等于关掉官方「模型」页**
+>
+> 本插件启用后会**禁用 DSH 自带的 `ui-settings-models` 那一行**，并占住它的位置。
+> 这是它的工作原理，不是故障。装之前请确认你能接受下面四点。
+>
+> - **只有一份模型页。** 官方那一页不会与它并存 —— 你没看到第二份是正常的。
+> - **想还原只需两步：** `dsh plugin --profile web remove dsh-quick-model` 然后重启，
+>   官方模型页自动回来。不需要改任何产品文件。
+> - **不要在插件面板里"只禁用它"。** 只把这一行设为 `disabled: true` 而不卸载，
+>   会让你的模型设置页**空白** —— 因为官方那行也已经被关了。
+> - **它同时撤掉了三个扩展点：** `settings.models.provider-card`、
+>   `settings.models.footer`、`settings.onboarding`。如果你之后要装依赖这些位置的第三方
+>   插件，请删掉本包 `cordis.patch.yml` 里那条 `disabled`，本插件会改为与官方页面并排显示。
+>
+> 完整说明见 [它是怎么把官方页面关掉的](#它是怎么把官方页面关掉的)。
 
 **从 GitHub**（npm 不可用时的等价方案。本包是纯 JavaScript、**没有构建步骤**，所以不会撞上
 pnpm 默认拦截 git 依赖 `prepare` 脚本的 `allowBuilds` 门槛）：
@@ -199,10 +220,17 @@ Host 半用的就是官方模型页同一套接缝：
 
 ### 代价
 
-官方那一行被关掉后，它声明的扩展点也随之消失：`settings.models.provider-card`、
-`settings.models.footer`、`settings.onboarding`。标准 web profile 里没有别的插件往这些位置
-注册，所以无影响。**如果你之后装了依赖这些扩展点的第三方插件**，就把上面那条 `disabled`
-从 `cordis.patch.yml` 里删掉 —— 本插件会转而与官方页面并排显示，而不是替换它。
+**1. 只有一份模型页。** 官方那一行被关掉后就不会与它并存 —— 导航里只剩一个「模型」，点进去
+是本插件的面板。这是设计，不是故障。
+
+**2. 不要"只禁用它"。** 如果你的目的是临时停用，请**卸载**（`dsh plugin --profile web remove
+dsh-quick-model`）而不是把插件行设为 `disabled: true`。只禁用插件行的话，官方那行仍然是关的 ——
+结果是你的模型设置页**整个空白**，而卸载是干净的。
+
+**3. 三个扩展点会被撤掉。** 官方那一行声明的 `settings.models.provider-card`、
+`settings.models.footer`、`settings.onboarding` 随它一起消失。标准 web profile 里没有别的
+插件往这些位置注册，所以无影响。**如果你之后装了依赖这些扩展点的第三方插件**，就把
+`cordis.patch.yml` 里那条 `disabled` 删掉 —— 本插件会转而与官方页面并排显示，而不是替换它。
 
 ### 取消替换
 
