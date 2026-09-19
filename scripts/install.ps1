@@ -14,15 +14,21 @@
     install requires (a profile's bundle list is a boot-time snapshot, so a new
     bundle is never hot-mounted).
 
+    A caller that also drives the browser must force a page reload after the
+    restart: the client module list is read from the page's __DSH_BOOT__ wire at
+    load time, so an already-open tab keeps running the previous module set.
+
 .PARAMETER Profile
     DSH profile name. Defaults to `web`.
 
 .PARAMETER Source
     Anything `pnpm add` accepts. Defaults to the npm package name.
       npm      dsh-quick-model
-      GitHub   github:<user>/dsh-quick-model
-      tarball  https://github.com/<user>/dsh-quick-model/releases/download/v1.0.0/dsh-quick-model-1.0.0.tgz
-      local    D:\path\to\dsh-quick-model\  or  .\dsh-quick-model-1.0.0.tgz
+      GitHub   github:jiyuljc/dsh-quick-model
+               git+https://github.com/jiyuljc/dsh-quick-model.git
+      local    D:\path\to\dsh-quick-model  or  .\dsh-quick-model-1.0.1.tgz
+    A GitHub Release tarball URL also works, but only once a Release exists —
+    this repository currently has no tags, so such a URL is a 404.
 
 .PARAMETER SkipVerify
     Skip the post-install contract check. Use when `scripts/validate.mjs` is
@@ -30,7 +36,7 @@
 
 .EXAMPLE
     .\install.ps1
-    .\install.ps1 -Profile web -Source github:someone/dsh-quick-model
+    .\install.ps1 -Profile web -Source github:jiyuljc/dsh-quick-model
 
 .NOTES
     Exit codes: 0 installed, 1 the install failed, 2 `dsh` is not on PATH,

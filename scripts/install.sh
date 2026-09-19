@@ -12,10 +12,14 @@
 # requires (a profile's bundle list is a boot-time snapshot, so a new bundle is
 # never hot-mounted).
 #
+# A caller that also drives the browser must force a page reload after the
+# restart: the client module list is read from the page's __DSH_BOOT__ wire at
+# load time, so an already-open tab keeps running the previous module set.
+#
 # Usage:
-#   ./install.sh                       # npm name, profile web
-#   ./install.sh web github:me/dsh-quick-model
-#   ./install.sh web ./dsh-quick-model-1.0.0.tgz
+#   ./install.sh                              # npm name, profile web
+#   ./install.sh web github:jiyuljc/dsh-quick-model
+#   ./install.sh web ./dsh-quick-model-1.0.1.tgz
 #
 # Set SKIP_VERIFY=1 to skip the post-install contract check (needed when
 # validate.mjs is not shipped alongside this script).
