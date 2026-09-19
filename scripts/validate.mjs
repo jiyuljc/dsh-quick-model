@@ -82,23 +82,45 @@ check('manifest exports ./client', () => {
 
 // ---- 2. loader patch ----------------------------------------------------
 const patchPath = join(dirname(pkgPath), pkg.dsh.bundle.patch);
+
+/**
+ * Read one top-level patch entry's body by line, without regex line matching.
+ * A `.*`-based capture silently truncates on CRLF checkouts — `.` does not
+ * match `\r` — so a Windows working tree would report a spurious failure on a
+ * patch that is in fact fine. Splitting first makes the reader EOL-agnostic.
+ * @param yaml - the whole patch document.
+ * @param header - a matcher for the entry's first line (e.g. /^- insert:/).
+ * @returns the body lines joined, or null when no line matches.
+ */
+function patchEntryBody(yaml, header) {
+  const lines = yaml.split(/\r?\n/);
+  const start = lines.findIndex((line) => header.test(line));
+  if (start === -1) return null;
+  const body = [];
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (/^\S/.test(lines[i])) break; // the next top-level entry begins
+    body.push(lines[i]);
+  }
+  return body.join('\n');
+}
+
 check('patch inserts one row naming the package', () => {
-  const yaml = readFileSync(patchPath, 'utf8');
-  const block = /^-\s*insert:\s*\n((?:[ \t]+.*\n?)*)/m.exec(yaml);
-  if (block === null) throw new Error('no top-level `- insert:` entry');
-  if (!new RegExp(`name:\\s*['"]?${specifier.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&')}['"]?`).test(block[1])) {
+  const body = patchEntryBody(readFileSync(patchPath, 'utf8'), /^-\s*insert:\s*$/);
+  if (body === null) throw new Error('no top-level `- insert:` entry');
+  if (!new RegExp(`name:\\s*['"]?${specifier.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&')}['"]?`).test(body)) {
     throw new Error(`the insert row does not name "${specifier}"`);
   }
-  const id = /id:\s*([A-Za-z0-9._-]+)/.exec(block[1]);
+  const id = /id:\s*([A-Za-z0-9._-]+)/.exec(body);
   if (id === null) throw new Error('the insert row carries no id');
   return `id=${id[1]}`;
 });
 
 check('patch disables the shipped Models page', () => {
-  const yaml = readFileSync(patchPath, 'utf8');
-  const block = /^-\s*id:\s*ui-settings-models\s*\n((?:[ \t]+.*\n?)*)/m.exec(yaml);
-  if (block === null) throw new Error('no id-targeted entry for "ui-settings-models"');
-  if (!/^\s*disabled:\s*true\s*$/m.test(block[1])) throw new Error('that entry does not set "disabled: true"');
+  const body = patchEntryBody(readFileSync(patchPath, 'utf8'), /^-\s*id:\s*ui-settings-models\s*$/);
+  if (body === null) throw new Error('no id-targeted entry for "ui-settings-models"');
+  if (!/^\s*disabled:\s*true\s*$/.test(body.trim().split(/\r?\n/).pop() ?? '')) {
+    throw new Error('that entry does not set "disabled: true"');
+  }
   return 'ui-settings-models disabled: true';
 });
 

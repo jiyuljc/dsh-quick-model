@@ -1,0 +1,5 @@
+# Keep one line ending everywhere: LF in the repository and in every checkout.
+# A published DSH plugin is read as JS source and as YAML by the loader; CRLF
+# would still parse, but it changes the bytes users receive and makes a local
+# Windows checkout differ from CI. Forcing LF removes that class of surprise.
+* text=auto eol=lf
