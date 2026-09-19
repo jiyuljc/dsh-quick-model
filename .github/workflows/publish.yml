@@ -13,11 +13,15 @@
 # and attaches the tarball to a GitHub Release (a stable URL installers can
 # fetch without npm).
 #
-# Required repository secret:
+# Authentication is OIDC trusted publishing: no token, no repository secret.
+# npm permanently revoked all classic tokens on 2025-12-09 (which retired the
+# old "Automation token in NPM_TOKEN" recipe this file used to carry), and
+# bypass-2FA granular tokens are being restricted for direct publishing.
+# Trusted publishing is the path npm now recommends.
 #
-#   NPM_TOKEN — an npm *Automation* token (npmjs.com → Access Tokens →
-#               Generate New Token → Automation). An Automation token bypasses
-#               2FA, which is what lets CI publish unattended.
+# One-time setup on the package's npm settings page: add a Trusted Publisher
+# with provider "GitHub Actions", repository `<owner>/dsh-quick-model`, and
+# workflow filename `publish.yml`.
 #
 # Nothing here compiles: the package is plain JavaScript with no build step,
 # which is also why a git-spec install works without pnpm's `allowBuilds`
@@ -44,6 +48,11 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
+
+      # Trusted publishing (OIDC) needs npm CLI 11.5.0 or later; Node 20 still
+      # ships npm 10.x.
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest
 
       - name: Check the tag against package.json
         if: github.event_name == 'push'
@@ -82,10 +91,17 @@ jobs:
       - name: Verify the host half's routes and actions
         run: node scripts/smoke-host.mjs lib/index.js
 
-      - name: Publish to npm
+      # No token and no secret: the CLI presents the workflow's OIDC identity to
+      # npm, which authorizes the publish against the trusted-publisher
+      # configuration on the package's npm settings page.
+      #
+      # One-time setup at https://www.npmjs.com/package/dsh-quick-model/access
+      # (or the package's Settings → Trusted Publisher panel): provider GitHub
+      # Actions, repository <owner>/dsh-quick-model, workflow filename
+      # publish.yml. After that, tagging a release publishes without any
+      # long-lived credential.
+      - name: Publish to npm via trusted publishing
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Pack and attach the tarball to a Release
         env:

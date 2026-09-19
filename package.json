@@ -1,6 +1,6 @@
 {
   "name": "dsh-quick-model",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "DSH web plugin: replaces the Settings → Models page with a one-stop panel — pick a preset or paste a baseURL + API key, fetch the model list from the endpoint, tick what you want, and save. Writes llm-pi-ai providers and credentials for you.",
   "type": "module",
   "main": "lib/index.js",

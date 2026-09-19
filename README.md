@@ -68,28 +68,43 @@ dsh plugin --profile <profile名> remove dsh-quick-model
 
 ## 发布（维护者）
 
-包已经在本地建好 git 仓库并提交，`dsh-quick-model` 这个名字在 npm 上是空的。发布只要三步：
+`dsh-quick-model@1.0.0` 已发布到 npm。首次发布之后，后续版本有三种方式：
 
 ```sh
-# 1. 在 github.com 新建一个空仓库 dsh-quick-model（不要勾选初始化 README）
-git remote add origin https://github.com/<用户名>/dsh-quick-model.git
-git push -u origin main
+# A. 本地手动发（npm 会在发布时要求一次 2FA 验证码）
+npm login --registry https://registry.npmjs.org/
+npm publish --registry https://registry.npmjs.org/ --access public --otp <6位验证码>
 ```
 
 ```sh
-# 2. 发到 npm —— 之后任何人都能 `dsh plugin add dsh-quick-model`
-npm login
-npm publish --access public
-```
-
-```sh
-# 3. 后续版本：打 tag 即自动发布（CI 会先跑自检，再发 npm 并附上 Release tarball）
+# B. 打 tag 交给 CI（推荐）
 npm version patch && git push --follow-tags
 ```
 
-第 3 步依赖仓库里配好 `NPM_TOKEN` secret（npmjs.com → Access Tokens → Generate New Token
-→ **Automation**，Automation 类型才能免 2FA 在 CI 里发布）。只做第 1 步、不发 npm 也可以 ——
-GitHub 通道能独立工作。
+```sh
+# C. 只推代码，不发 npm
+git push -u origin main
+```
+
+### 认证现状（容易踩坑，务必看）
+
+npm 的认证方式在 2025-12-09 变过一次，网上大量教程已经过时：
+
+- **classic token 被永久撤销**，包括以前常说的 "Automation token"。那个选项在
+  npmjs.com 的令牌页面上**已经不存在**了。
+- `npm login` 现在拿到的是**两小时会话令牌**，且**发布时会额外要求一次 2FA 验证** ——
+  所以 `npm publish` 通常需要 `--otp <验证码>`。
+- **granular access token** 只有在勾选 **Bypass two-factor authentication (2FA)** 时才能用于
+  发布。勾了之后令牌元数据里 `bypass_2fa: true` —— 可以用
+  `GET https://registry.npmjs.org/-/npm/v1/tokens`（带该令牌）自查这个字段。这类令牌对"直接
+  发布"正在收紧，属于过渡方案。
+- **CI 的推荐路径是 OIDC trusted publishing**（本仓库工作流已采用）：不需要任何长期令牌。
+  一次性配置：在包的 npm 设置页添加 Trusted Publisher，provider 选 GitHub Actions，
+  repository 填 `<owner>/dsh-quick-model`，workflow filename 填 `publish.yml`。配好之后
+  方式 B 就能无人值守发布，并自动附带 provenance 证明。
+
+GitHub 通道可以独立于 npm 工作 —— 只推仓库不发包，`dsh plugin add github:<用户名>/dsh-quick-model`
+一样能装。
 
 ## 自检
 
