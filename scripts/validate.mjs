@@ -142,7 +142,10 @@ const clientSource = readFileSync(clientEntry, 'utf8');
 
 check('client half is a __ModuleLoader__ bundle', () => {
   if (!clientSource.includes('window.__ModuleLoader__.load(')) throw new Error('no __ModuleLoader__.load call');
-  return `${clientSource.length} bytes`;
+  // Byte length, not `clientSource.length` — the bundle carries Chinese UI
+  // strings, so the JS string length counts UTF-16 code units and understates
+  // the file.
+  return `${Buffer.byteLength(clientSource, 'utf8')} bytes`;
 });
 
 check('client half loads and registers the models section', () => {

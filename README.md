@@ -14,15 +14,23 @@
 dsh plugin --profile <profile名> add dsh-quick-model
 ```
 
-**从 tarball**（未发布时，把 `dsh-quick-model-1.0.0.tgz` 发给对方）：
+**从 GitHub**（未发 npm 时也能一行装。本包是纯 JavaScript、**没有构建步骤**，
+所以不会撞上 pnpm 默认拦截 git 依赖 `prepare` 脚本的 `allowBuilds` 门槛）：
+
+```sh
+dsh plugin --profile <profile名> add github:<用户名>/dsh-quick-model
+```
+
+**从 GitHub Release 的 tarball URL**（最适合嵌进别的安装器）：
+
+```sh
+dsh plugin --profile <profile名> add https://github.com/<用户名>/dsh-quick-model/releases/download/v1.0.0/dsh-quick-model-1.0.0.tgz
+```
+
+**从本地 tarball / 本地目录**（离线分发或开发时）：
 
 ```sh
 dsh plugin --profile <profile名> add ./dsh-quick-model-1.0.0.tgz
-```
-
-**从本地目录**（开发时，装成符号链接，改完即生效）：
-
-```sh
 dsh plugin --profile <profile名> add D:\path\to\dsh-quick-model
 ```
 
@@ -41,6 +49,47 @@ dsh plugin --profile <profile名> remove dsh-quick-model
 ```
 
 卸载并重启后，官方模型页自动回来。
+
+### 给安装器作者
+
+`scripts/install.ps1` 与 `scripts/install.sh` 是对上面那条命令的薄封装，可直接嵌入别的安装器：
+
+```powershell
+.\install.ps1 -Profile web -Source github:someone/dsh-quick-model
+```
+
+```sh
+./install.sh web github:someone/dsh-quick-model
+```
+
+它们在 `dsh` 不在 PATH 时报错退出（码 2）、安装失败时退出（码 1）、安装后调用本包自己的
+契约自检（失败则退出码 3），最后打印"必须重启"的提示。两者都是**纯 ASCII**，不受编码或
+区域设置影响。`SKIP_VERIFY=1`（sh）或 `-SkipVerify`（ps1）可在未随附 `validate.mjs` 时跳过自检。
+
+## 发布（维护者）
+
+包已经在本地建好 git 仓库并提交，`dsh-quick-model` 这个名字在 npm 上是空的。发布只要三步：
+
+```sh
+# 1. 在 github.com 新建一个空仓库 dsh-quick-model（不要勾选初始化 README）
+git remote add origin https://github.com/<用户名>/dsh-quick-model.git
+git push -u origin main
+```
+
+```sh
+# 2. 发到 npm —— 之后任何人都能 `dsh plugin add dsh-quick-model`
+npm login
+npm publish --access public
+```
+
+```sh
+# 3. 后续版本：打 tag 即自动发布（CI 会先跑自检，再发 npm 并附上 Release tarball）
+npm version patch && git push --follow-tags
+```
+
+第 3 步依赖仓库里配好 `NPM_TOKEN` secret（npmjs.com → Access Tokens → Generate New Token
+→ **Automation**，Automation 类型才能免 2FA 在 CI 里发布）。只做第 1 步、不发 npm 也可以 ——
+GitHub 通道能独立工作。
 
 ## 自检
 

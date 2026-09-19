@@ -54,6 +54,24 @@ jobs:
             exit 1
           fi
 
+      # `npm publish --provenance` requires a `repository` field, and npm checks
+      # it against the repository the workflow actually runs in. Deriving the
+      # three fields from GITHUB_REPOSITORY means a fork publishes correct
+      # metadata without anyone hand-editing a placeholder — and the checked-in
+      # package.json stays free of an account name that would be wrong for
+      # anyone else.
+      - name: Derive the repository metadata from this run
+        run: |
+          node -e "
+            const fs = require('fs');
+            const url = 'https://github.com/' + process.env.GITHUB_REPOSITORY;
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.repository = { type: 'git', url: url + '.git' };
+            pkg.bugs = { url: url + '/issues' };
+            pkg.homepage = url + '#readme';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
       # The same two scripts a user can run locally. Here they run in
       # self-check mode: the package is not installed under a profile yet, so
       # resolution falls back to this checkout and every other contract is still
