@@ -6,60 +6,71 @@
 
 ## 安装
 
-三个来源，任选其一 —— 都是同一条命令的形式。
-
-**从 npm**（包已发布时，其他人最省事）：
+**从 npm（推荐，一行搞定）：**
 
 ```sh
-dsh plugin --profile <profile名> add dsh-quick-model
+dsh plugin --profile web add dsh-quick-model
 ```
 
-**从 GitHub**（未发 npm 时也能一行装。本包是纯 JavaScript、**没有构建步骤**，
-所以不会撞上 pnpm 默认拦截 git 依赖 `prepare` 脚本的 `allowBuilds` 门槛）：
+装完 **重启 DSH**，就是这个面板。
+
+**从 GitHub**（npm 不可用时的等价方案。本包是纯 JavaScript、**没有构建步骤**，所以不会撞上
+pnpm 默认拦截 git 依赖 `prepare` 脚本的 `allowBuilds` 门槛）：
 
 ```sh
-dsh plugin --profile <profile名> add github:<用户名>/dsh-quick-model
+dsh plugin --profile web add github:jiyuljc/dsh-quick-model
 ```
 
-**从 GitHub Release 的 tarball URL**（最适合嵌进别的安装器）：
+下面几种写法等价，都实测可用：
 
 ```sh
-dsh plugin --profile <profile名> add https://github.com/<用户名>/dsh-quick-model/releases/download/v1.0.0/dsh-quick-model-1.0.0.tgz
+dsh plugin --profile web add git+https://github.com/jiyuljc/dsh-quick-model.git
+dsh plugin --profile web add https://github.com/jiyuljc/dsh-quick-model
 ```
 
 **从本地 tarball / 本地目录**（离线分发或开发时）：
 
 ```sh
-dsh plugin --profile <profile名> add ./dsh-quick-model-1.0.0.tgz
-dsh plugin --profile <profile名> add D:\path\to\dsh-quick-model
+dsh plugin --profile web add ./dsh-quick-model-1.0.1.tgz
+dsh plugin --profile web add D:\path\to\dsh-quick-model
 ```
 
+> `--profile web` 里的 `web` 是 profile 名，换用别的 profile 就改这里。
 > `dsh plugin` 是 pnpm 的转发器：它在 profile 目录里跑 `pnpm add`，然后对照安装结果把
 > `dsh.profile.bundles` 补齐。绝对路径与 `file:` 规格会原样传递；只有 `.` / `..` 这类相对
 > 路径会被锚定到你当前所在目录。
 
-**安装后必须重启 DSH。** profile 的 bundle 列表是**启动时**的快照 —— 只有用户
-`cordis.patch.yml` 被编辑时才会热重载，新增 bundle 不会热挂载。重启后打开
-「设置 → 模型」，看到的就是这个面板。
+### 装完必须重启，并且重新加载页面
 
-卸载：
+**这两步都不能省**，缺任何一步都会让你觉得"装了没反应"：
+
+1. **重启 DSH。** profile 的 bundle 列表是**启动时**读一次的快照，新加的 bundle 不会被热挂载。
+2. **强制刷新浏览器页面**（`Ctrl` + `Shift` + `R`）。
+
+第 2 步的原因：浏览器里的客户端模块清单来自页面加载那一刻注入的 `window.__DSH_BOOT__`。
+DSH 重启**不会**自动刷新已打开的标签页，旧页面会继续挂着旧模块 —— 表现就是"面板还是老样子"。
+普通 `F5` 可能读到缓存的 `index.html`，所以在 DSH 重启后请用强刷。
+
+### 卸载
 
 ```sh
-dsh plugin --profile <profile名> remove dsh-quick-model
+dsh plugin --profile web remove dsh-quick-model
 ```
 
-卸载并重启后，官方模型页自动回来。
+卸载 + 重启后官方模型页自动回来。
 
 ### 给安装器作者
 
 `scripts/install.ps1` 与 `scripts/install.sh` 是对上面那条命令的薄封装，可直接嵌入别的安装器：
 
 ```powershell
-.\install.ps1 -Profile web -Source github:someone/dsh-quick-model
+.\install.ps1 -Profile web -Source dsh-quick-model
+.\install.ps1 -Profile web -Source github:jiyuljc/dsh-quick-model
 ```
 
 ```sh
-./install.sh web github:someone/dsh-quick-model
+./install.sh web dsh-quick-model
+./install.sh web github:jiyuljc/dsh-quick-model
 ```
 
 它们在 `dsh` 不在 PATH 时报错退出（码 2）、安装失败时退出（码 1）、安装后调用本包自己的
@@ -103,8 +114,11 @@ npm 的认证方式在 2025-12-09 变过一次，网上大量教程已经过时�
   repository 填 `<owner>/dsh-quick-model`，workflow filename 填 `publish.yml`。配好之后
   方式 B 就能无人值守发布，并自动附带 provenance 证明。
 
-GitHub 通道可以独立于 npm 工作 —— 只推仓库不发包，`dsh plugin add github:<用户名>/dsh-quick-model`
-一样能装。
+GitHub 通道可以独立于 npm 工作 —— 只推仓库不发包，`dsh plugin --profile web add github:jiyuljc/dsh-quick-model` 一样能装。
+
+> 仓库目前**没有 tag、没有 Release**。README 里不再给出 Release tarball 的安装写法，因为
+> 那种 URL 在 Release 实际存在之前必然是 404。等 `publish.yml` 随 tag 跑过之后，才会产出
+> `https://github.com/jiyuljc/dsh-quick-model/releases/download/<tag>/dsh-quick-model-<版本>.tgz`。
 
 ## 自检
 
