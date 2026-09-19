@@ -1,0 +1,79 @@
+# Publish dsh-quick-model.
+#
+# Pushing a version tag is the whole release procedure:
+#
+#   npm version patch && git push --follow-tags
+#
+# or, without npm:
+#
+#   git tag v1.0.1 && git push origin v1.0.1
+#
+# The job re-runs the package's own contract checks, publishes to npm (which is
+# what makes `dsh plugin --profile <name> add dsh-quick-model` work for anyone),
+# and attaches the tarball to a GitHub Release (a stable URL installers can
+# fetch without npm).
+#
+# Required repository secret:
+#
+#   NPM_TOKEN — an npm *Automation* token (npmjs.com → Access Tokens →
+#               Generate New Token → Automation). An Automation token bypasses
+#               2FA, which is what lets CI publish unattended.
+#
+# Nothing here compiles: the package is plain JavaScript with no build step,
+# which is also why a git-spec install works without pnpm's `allowBuilds`
+# opt-in (pnpm blocks build scripts of git-hosted dependencies by default).
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Check the tag against package.json
+        if: github.event_name == 'push'
+        run: |
+          pkg="v$(node -p "require('./package.json').version")"
+          if [ "$pkg" != "${GITHUB_REF_NAME}" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not match package.json version ${pkg}" >&2
+            exit 1
+          fi
+
+      # The same two scripts a user can run locally. Here they run in
+      # self-check mode: the package is not installed under a profile yet, so
+      # resolution falls back to this checkout and every other contract is still
+      # enforced (loader patch, client bundle, host half, route handlers).
+      - name: Verify the packaging contract
+        run: node scripts/validate.mjs . dsh-quick-model
+
+      - name: Verify the host half's routes and actions
+        run: node scripts/smoke-host.mjs lib/index.js
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Pack and attach the tarball to a Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npm pack
+          gh release create "${GITHUB_REF_NAME}" ./*.tgz \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes

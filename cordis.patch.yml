@@ -1,0 +1,44 @@
+# dsh-quick-model bundle patch
+#
+# This is the `dsh.bundle.patch` layer of the package: when the plugin is
+# installed through the official CLI —
+#
+#   dsh plugin --profile <name> add dsh-quick-model
+#
+# — the command reconciles `dsh.profile.bundles` against installed packages
+# and, seeing this declaration, appends `dsh-quick-model` to the bundle stack.
+# The profile boot then merges THIS patch. No profile file edits are needed:
+# one command installs and mounts.
+#
+# ── 1. turn the shipped Models page off ─────────────────────────────────────
+#
+# `@deepseek-ai/dsh-client-ui-settings-models` is the row that ships the
+# Settings → Models page in the web bundle. It is disabled here so exactly one
+# Models page exists: this plugin's.
+#
+# A bundle patch layer is applied in `dsh.profile.bundles` order, and
+# `dsh plugin add` appends new bundles last — so this layer runs AFTER the
+# `@deepseek-ai/dsh-web-app` layer that inserts that row, and an id-targeted
+# `disabled` wins.
+#
+# Disabling the row also withdraws the extension points it declares
+# (`settings.models.provider-card`, `settings.models.footer`,
+# `settings.onboarding`). Nothing in a stock web profile registers into them;
+# a deployment that later adds such a registrant should drop this entry and
+# let this plugin sit beside the shipped page instead (see README).
+- id: ui-settings-models
+  disabled: true
+
+# ── 2. mount this plugin ───────────────────────────────────────────────────
+#
+# The row name MUST stay `dsh-quick-model` (the package name) — the client
+# module scanner resolves the package manifest from the row's module
+# specifier to find `dsh.client` and `exports["./client"]`.
+#
+# The Host half registers /api/quick-model/* on the web server; the browser
+# half declares `dsh.client` and registers into the `settings.section` slot
+# with the shipped id `models`, so it occupies the same navigation cell the
+# disabled page used to fill.
+- insert:
+    - id: quick-model
+      name: dsh-quick-model
