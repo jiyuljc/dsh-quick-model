@@ -27,8 +27,8 @@
       GitHub   github:jiyuljc/dsh-quick-model
                git+https://github.com/jiyuljc/dsh-quick-model.git
       local    D:\path\to\dsh-quick-model  or  .\dsh-quick-model-1.0.1.tgz
-    A GitHub Release tarball URL also works, but only once a Release exists —
-    this repository currently has no tags, so such a URL is a 404.
+    A GitHub Release tarball URL also works, but only once a Release exists.
+    This repository currently has no tags, so such a URL is a 404.
 
 .PARAMETER SkipVerify
     Skip the post-install contract check. Use when `scripts/validate.mjs` is
